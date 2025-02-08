@@ -9,12 +9,17 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.EmergencyScribeApp",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app requires access to the microphone to record audio."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#ffffff",
+        "permissions": ["CAMERA", "RECORD_AUDIO"]
       }
     },
     "web": {
