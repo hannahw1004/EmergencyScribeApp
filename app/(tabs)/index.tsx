@@ -1,18 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Switch  } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import axios from 'axios';
-import { Ionicons } from '@expo/vector-icons';  // Importing icons from Expo
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const API_KEY = "f3b7e65191df4d849a61b1ca537e2356"; // Store this securely (e.g., in environment variables)
+const API_KEY = "f3b7e65191df4d849a61b1ca537e2356";
 
 const EmergencyCallScreen = () => {
   const [recordingInstance, setRecordingInstance] = useState<Audio.Recording | null>(null);
   const [recording, setRecording] = useState<boolean>(false);
   const [status, setStatus] = useState('Ready to record');
   const [transcription, setTranscription] = useState<string | null>(null);
+  const [isDoctorMode, setIsDoctorMode] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  const dummySummary = {
+    mainPoints: [
+      "Patient reported severe abdominal pain",
+      "Symptoms started 3 days ago",
+      "Pain intensifies after meals"
+    ],
+    recommendations: [
+      "Schedule immediate follow-up",
+      "Avoid spicy foods",
+      "Monitor pain patterns"
+    ]
+  };
+  
+  useEffect(() => {
+    if (recording) {
+      startPulseAnimation();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [recording]);
+
+  const startPulseAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
 
   const requestPermissions = async () => {
     const { status } = await Audio.requestPermissionsAsync();
@@ -145,45 +186,253 @@ const EmergencyCallScreen = () => {
     }
   };
 
+  const toggleSwitch = () => {
+    setIsDoctorMode(previousState => !previousState);
+  };
+
+
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Emergency Translator</Text>
-
-        {/* Toggle button for mic/stop */}
-        <TouchableOpacity style={styles.roundButton} onPress={startStopRecording} disabled={status === 'Processing transcription...'}>
-          <Ionicons name={recording ? "stop" : "mic"} size={50} color="white" />
-        </TouchableOpacity>
-
-        <Text style={styles.statusText}>{status}</Text>
+      <View style={styles.header}>
+        <Text style={styles.modeText}>{isDoctorMode ? "Doctor Mode" : "Patient Mode"}</Text>
+        <Switch
+          trackColor={{ false: '#767577', true: '#81b0ff' }}
+          thumbColor={isDoctorMode ? '#2196F3' : '#f4f3f4'}
+          onValueChange={toggleSwitch}
+          value={isDoctorMode}
+          style={[styles.switch, { zIndex: 10 }]}
+        />
       </View>
 
-      {transcription && (
-        <Animated.View style={[styles.transcriptionContainer, { opacity: fadeAnim }]}>
-          <Text style={styles.transcriptionTitle}>Transcription:</Text>
-          <Text style={styles.transcription}>{transcription}</Text>
-        </Animated.View>
-      )}
+      <View style={styles.card}>
+        {!isDoctorMode ? (
+          // Patient Mode
+          <>
+            <Text style={styles.title}>Emergency Translator</Text>
+            <View style={styles.buttonContainer}>
+              <Animated.View style={[
+                styles.pulsingCircle,
+                {
+                  transform: [{ scale: pulseAnim }],
+                  opacity: recording ? 1 : 0,
+                }
+              ]}>
+                <LinearGradient
+                  colors={['#FF6B6B', '#FF4D4D', '#FF3333']}
+                  style={styles.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+              </Animated.View>
+              <TouchableOpacity 
+                style={styles.roundButton} 
+                onPress={startStopRecording} 
+                disabled={status === 'Processing transcription...'}
+              >
+                <Ionicons 
+                  name={recording ? "stop" : "mic"} 
+                  size={50} 
+                  color="white" 
+                />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.statusText}>{status}</Text>
+            {transcription && (
+              <Animated.View style={[styles.transcriptionContainer, { opacity: fadeAnim }]}>
+                <Text style={styles.transcriptionTitle}>Transcription:</Text>
+                <Text style={styles.transcription}>{transcription}</Text>
+              </Animated.View>
+            )}
+          </>
+        ) : (
+          // Doctor Mode
+          <View style={styles.doctorView}>
+            <Text style={styles.doctorTitle}>Patient Summary</Text>
+            
+            <View style={styles.summarySection}>
+              <Text style={styles.sectionTitle}>Main Points</Text>
+              <View style={styles.divider} />
+              {dummySummary.mainPoints.map((point, index) => (
+                <View key={index} style={styles.bulletPoint}>
+                  <Text style={styles.bullet}>•</Text>
+                  <Text style={styles.pointText}>{point}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.summarySection}>
+              <Text style={styles.sectionTitle}>Recommendations</Text>
+              <View style={styles.divider} />
+              {dummySummary.recommendations.map((rec, index) => (
+                <View key={index} style={styles.bulletPoint}>
+                  <Text style={styles.bullet}>•</Text>
+                  <Text style={styles.pointText}>{rec}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  card: { width: '80%', padding: 20, backgroundColor: '#fff', borderRadius: 10 },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  roundButton: {
-    backgroundColor: '#FF4D4D', 
-    padding: 20, 
-    borderRadius: 50, 
+  container: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    justifyContent: "center",
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'center',  // Change this to 'space-between' if needed
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  modeText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginRight: 10,
+    color: '#2c3e50',
+  },
+  switch: {
+    transform: [{ scaleX: 1.2 }, { scaleY: 1.2 }],
+  },
+  card: {
+    flex: 1,
+    margin: 20,
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    justifyContent: "center",
+  },
+  doctorView: {
+    flex: 1,
+    padding: 10,
+  },
+  doctorTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 25,
+    textAlign: 'center',
+  },
+  summarySection: {
+    marginBottom: 25,
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 10,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#34495e',
     marginBottom: 10,
+  },
+  divider: {
+    height: 2,
+    backgroundColor: '#e9ecef',
+    marginBottom: 15,
+  },
+  bulletPoint: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    alignItems: 'flex-start',
+  },
+  bullet: {
+    fontSize: 20,
+    color: '#2196F3',
+    marginRight: 10,
+    lineHeight: 24,
+  },
+  pointText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#2c3e50',
+    lineHeight: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  buttonContainer: {
+    width: 120,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  pulsingCircle: {
+    position: 'absolute',
+    width: 100,  // Match roundButton size
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  statusText: { fontSize: 18, textAlign: 'center', marginTop: 10 },
-  transcriptionContainer: { marginTop: 20, padding: 10, backgroundColor: '#f8f8f8' },
-  transcriptionTitle: { fontSize: 16, fontWeight: 'bold' },
-  transcription: { fontSize: 14, color: 'black' },
+  gradient: {
+    width: 100, // Match roundButton size
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  roundButton: {
+    backgroundColor: '#A7292F',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  statusText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#666',
+  },
+  transcriptionContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    width: '80%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  transcriptionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  transcription: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
 });
 
 export default EmergencyCallScreen;
