@@ -11,6 +11,7 @@ import { SymptomDetector } from './symptom';
 interface SymptomSummary {
   mainPoints: string;
 }
+import { DiseasePredictor } from './diagnostics';
 
 const API_KEY = "f3b7e65191df4d849a61b1ca537e2356";
 
@@ -128,7 +129,6 @@ const EmergencyCallScreen = () => {
         console.log(summary)
 
         setMainPoints(summary.split('\n'));
-        
       }
     } catch (error) {
       console.error("Error stopping recording:", error);
