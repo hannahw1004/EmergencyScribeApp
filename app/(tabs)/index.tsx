@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { SymptomDetector } from './symptom';
+import { DiseasePredictor } from './diagnostics';
 
 const API_KEY = "f3b7e65191df4d849a61b1ca537e2356";
 
@@ -123,7 +124,11 @@ const EmergencyCallScreen = () => {
 
         const symptom = new SymptomDetector()
         const summary = await symptom.detectSymptom(transcript);
-        console.log(summary)
+        
+        const predictor = new DiseasePredictor()
+        const disease = await predictor.predictDisease(summary);
+
+        console.log(disease)
       }
     } catch (error) {
       console.error("Error stopping recording:", error);
