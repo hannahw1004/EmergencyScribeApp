@@ -24,13 +24,18 @@ const EmergencyCallScreen = () => {
   const fadeAnim = useState(new Animated.Value(0))[0];
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [mainPoints, setMainPoints] = useState<string[]>([]);
-  const dummySummary = {
-    mainPoints: transcription ? transcription.split('\n') : [] // Example: Split the transcription into points
-  };
+  const [recoPoints, setRecommendationPoints] = useState<string[]>([]);
+ 
 
   useEffect(() => {
     if (transcription) {
       setMainPoints(transcription.split('\n')); // Example: splitting transcription into points
+    }
+  }, [transcription]);
+
+  useEffect(() => {
+    if (transcription) {
+      setRecommendationPoints(transcription.split('\n')); // Example: splitting transcription into points
     }
   }, [transcription]);
 
@@ -126,9 +131,15 @@ const EmergencyCallScreen = () => {
 
         const symptom = new SymptomDetector()
         const summary: string = await symptom.detectSymptom(transcript);
+        
+        const predictor = new DiseasePredictor()
+        const disease = await predictor.predictDisease(summary);
+
+        console.log(disease)
         console.log(summary)
 
         setMainPoints(summary.split('\n'));
+        setRecommendationPoints(disease.split('\n'))
       }
     } catch (error) {
       console.error("Error stopping recording:", error);
@@ -259,15 +270,22 @@ const EmergencyCallScreen = () => {
         ) : (
           // Doctor Mode
           <View style={styles.summarySection}>
-              <Text style={styles.sectionTitle}>Main Points</Text>
+              <Text style={styles.sectionTitle}>Main Points:</Text>
               <View style={styles.divider} />
               {mainPoints.map((point: string, index: number) => (
                 <View key={index} style={styles.bulletPoint}>
-                  <Text style={styles.bullet}>•</Text>
                   <Text style={styles.pointText}>{point}</Text>
                 </View>
               ))}
-            </View>
+
+              <Text style={styles.sectionTitle}>Recommendations:</Text>
+              <View style={styles.divider} />
+              {recoPoints.map((point: string, index: number) => (
+                <View key={index} style={styles.bulletPoint}>
+                  <Text style={styles.pointText}>{point}</Text>
+                </View>
+                 ))}
+            </View> 
         )}
       </View>
     </View>
