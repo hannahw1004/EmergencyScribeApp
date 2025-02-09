@@ -5,8 +5,12 @@ import * as FileSystem from 'expo-file-system';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-
+import { OpenAI } from 'openai';
 import { SymptomDetector } from './symptom';
+
+interface SymptomSummary {
+  mainPoints: string;
+}
 
 const API_KEY = "f3b7e65191df4d849a61b1ca537e2356";
 
@@ -18,20 +22,18 @@ const EmergencyCallScreen = () => {
   const [isDoctorMode, setIsDoctorMode] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
+  const [mainPoints, setMainPoints] = useState<string[]>([]);
   const dummySummary = {
-    mainPoints: [
-      "Patient reported severe abdominal pain",
-      "Symptoms started 3 days ago",
-      "Pain intensifies after meals"
-    ],
-    recommendations: [
-      "Schedule immediate follow-up",
-      "Avoid spicy foods",
-      "Monitor pain patterns"
-    ]
+    mainPoints: transcription ? transcription.split('\n') : [] // Example: Split the transcription into points
   };
-  
+
+  useEffect(() => {
+    if (transcription) {
+      setMainPoints(transcription.split('\n')); // Example: splitting transcription into points
+    }
+  }, [transcription]);
+
+
   useEffect(() => {
     if (recording) {
       startPulseAnimation();
@@ -122,14 +124,18 @@ const EmergencyCallScreen = () => {
         }).start();
 
         const symptom = new SymptomDetector()
-        const summary = await symptom.detectSymptom(transcript);
+        const summary: string = await symptom.detectSymptom(transcript);
         console.log(summary)
+
+        setMainPoints(summary.split('\n'));
+        
       }
     } catch (error) {
       console.error("Error stopping recording:", error);
       setStatus('Error stopping recording');
     }
   };
+
 
   const uploadAudio = async (audioUri: string) => {
     try {
@@ -252,31 +258,16 @@ const EmergencyCallScreen = () => {
           </>
         ) : (
           // Doctor Mode
-          <View style={styles.doctorView}>
-            <Text style={styles.doctorTitle}>Patient Summary</Text>
-            
-            <View style={styles.summarySection}>
+          <View style={styles.summarySection}>
               <Text style={styles.sectionTitle}>Main Points</Text>
               <View style={styles.divider} />
-              {dummySummary.mainPoints.map((point, index) => (
+              {mainPoints.map((point: string, index: number) => (
                 <View key={index} style={styles.bulletPoint}>
                   <Text style={styles.bullet}>•</Text>
                   <Text style={styles.pointText}>{point}</Text>
                 </View>
               ))}
             </View>
-
-            <View style={styles.summarySection}>
-              <Text style={styles.sectionTitle}>Recommendations</Text>
-              <View style={styles.divider} />
-              {dummySummary.recommendations.map((rec, index) => (
-                <View key={index} style={styles.bulletPoint}>
-                  <Text style={styles.bullet}>•</Text>
-                  <Text style={styles.pointText}>{rec}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
         )}
       </View>
     </View>
