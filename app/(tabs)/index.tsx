@@ -5,6 +5,10 @@ import * as FileSystem from 'expo-file-system';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';  // Importing icons from Expo
 
+//import { mapTextToFeatures } from './features';
+//import { analyzePatient } from './endlessmedical';
+import { SymptomDetector } from './symptom';
+
 const API_KEY = "f3b7e65191df4d849a61b1ca537e2356"; // Store this securely (e.g., in environment variables)
 
 const EmergencyCallScreen = () => {
@@ -77,6 +81,10 @@ const EmergencyCallScreen = () => {
           duration: 500, // Adjust duration for the fade effect
           useNativeDriver: true,
         }).start();
+    
+        const symptom = new SymptomDetector()
+        const summary = await symptom.detectSymptom(transcript);
+        console.log(summary)
       }
     } catch (error) {
       console.error("Error stopping recording:", error);
